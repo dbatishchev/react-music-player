@@ -1,72 +1,84 @@
 const electron = require('electron');
-// Module to control application life.
 const app = electron.app;
-// Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
-
-// const path = require('path');
-// const url = require('url');
 const fs = require('fs');
 const mp3Duration = require('mp3-duration');
 const id3 = require('id3js');
 const dataurl = require('dataurl');
+const lodash = require('lodash');
+const shortid = require('shortid');
 
-const getDuration = (filePath) => {
+const getDuration = (track) => {
   return new Promise((resolve, reject) => {
-    mp3Duration(filePath, (err, duration) => {
+    mp3Duration(track.filePath, (err, duration) => {
       if (duration) {
         resolve(duration);
       }
-      if (err) { reject(err); }
+      if (err) {
+        reject(err);
+      }
     });
   });
 };
 
 const getTags = (track) => {
-  const { filePath } = track;
+  const {filePath} = track;
   return new Promise((resolve, reject) => {
-    id3({ file: filePath, type: id3.OPEN_LOCAL }, (err, tags) => {
+    id3({file: filePath, type: id3.OPEN_LOCAL}, (err, tags) => {
       if (tags) {
-        const { title, album, artist } = tags;
-        Object.assign(track, { title, album, artist, track: tags.v1.track });
+        const {title, album, artist} = tags;
+        Object.assign(track, {title, album, artist, track: tags.v1.track});
         resolve(track);
       }
-      if (err) { reject(err); }
+      if (err) {
+        reject(err);
+      }
     });
   });
 };
 
 const createSongObject = (filePath) => {
-  const track = {};
-  return getDuration(filePath)
-    .then((duration) => Object.assign(track, { duration, filePath }))
-    .then((track) => getTags(track));
+  const track = {filePath, id: shortid.generate()};
+
+  return convertSong(filePath)
+    .then(songDataurl => Object.assign(track, {songDataurl}))
+    .then(getDuration(track))
+    .then(duration => Object.assign(track, {duration}))
+    .then(track => getTags(track));
 };
 
-const openFile = exports.openFile = () => {
-  const files = dialog.showOpenDialog({
+const openFile = () => {
+  const files = electron.dialog.showOpenDialog({
     title: 'Open File',
-    properties: [ 'openFile' ],
+    properties: ['openFile', 'openDirectory', 'multiSelections'],
     filters: [
       {name: 'Audio Files', extensions: ['mp3']},
     ]
   });
 
-  if (!files) { return; }
+  if (!files) {
+    return;
+  }
 
-  const filePath = files[0];
-
-  return createSongObject(filePath);
+  return Promise.all(lodash.map(files, createSongObject));
 };
 
 const convertSong = (filePath) => {
   return new Promise((resolve, reject) => {
     fs.readFile(filePath, (err, data) => {
-      if (err) { reject(err); }
-      resolve(dataurl.convert({ data, mimetype: 'audio/mp3' })); // todo
+      if (err) {
+        reject(err);
+      }
+      resolve(dataurl.convert({data, mimetype: 'audio/mp3'})); // todo
     });
   });
 };
+
+electron.ipcMain.on('openFile', (event, path) => {
+  openFile().then((data) => {
+    event.sender.send('fileData', data);
+  });
+});
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.

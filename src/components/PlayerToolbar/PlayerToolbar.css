@@ -1,0 +1,11 @@
+.player-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 32px;
+    width: 100%;
+}
+
+.player-toolbar audio {
+    width: 100%;
+}

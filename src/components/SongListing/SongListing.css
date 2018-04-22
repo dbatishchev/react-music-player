@@ -1,0 +1,30 @@
+.song-listing {
+    font-size: 12px;
+    text-align: left;
+    padding: 0 40px 40px 40px;
+}
+.song-listing-item {
+    padding: 5px 0;
+    cursor: pointer;
+}
+.song-listing-item__album {
+    display: inline-block;
+    margin-right: 20px;
+    width: 200px;
+    overflow: hidden;
+}
+.song-listing-item__title {
+    display: inline-block;
+    margin-right: 20px;
+    width: 300px;
+    overflow: hidden;
+}
+.song-listing-item__artist {
+    display: inline-block;
+    margin-right: 20px;
+    width: 200px;
+    overflow: hidden;
+}
+.song-listing-item__duration {
+    display: inline-block;
+}
